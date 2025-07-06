@@ -29,7 +29,8 @@ public class ExerciseService {
     }
 
     public void deleteByIdAndUser(Long id, User user) {
-        repo.findById(id).filter(e -> e.getUser().equals(user))
+        repo.findById(id)
+                .filter(e -> e.getUser().getId().equals(user.getId()))  // porównujemy tylko ID
                 .ifPresent(repo::delete);
     }
 }

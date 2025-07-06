@@ -1,5 +1,6 @@
 package aplikacja_fitness.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,6 +11,7 @@ public class ScheduledExercise {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonBackReference                    // <<< oraz tu
     @ManyToOne(optional = false)
     @JoinColumn(name = "scheduled_workout_id")
     private ScheduledWorkout scheduledWorkout;
@@ -20,4 +22,5 @@ public class ScheduledExercise {
 
     private int durationMinutes;
 }
+
 

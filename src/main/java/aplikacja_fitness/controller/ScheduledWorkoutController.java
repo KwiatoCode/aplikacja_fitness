@@ -1,9 +1,12 @@
 package aplikacja_fitness.controller;
 
+import aplikacja_fitness.Repository.TrainingRepository;
 import aplikacja_fitness.Repository.UserRepository;
+import aplikacja_fitness.model.Training;
 import aplikacja_fitness.model.User;
 import aplikacja_fitness.model.ScheduledWorkout;
 import aplikacja_fitness.Service.ScheduledWorkoutService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,58 +14,86 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/schedule")
 public class ScheduledWorkoutController {
-
-    private final ScheduledWorkoutService scheduledWorkoutService;
+    private final ScheduledWorkoutService service;
     private final UserRepository userRepository;
+    private final TrainingRepository trainingRepository;
 
-    public ScheduledWorkoutController(ScheduledWorkoutService scheduledWorkoutService, UserRepository userRepository) {
-        this.scheduledWorkoutService = scheduledWorkoutService;
+    @Autowired
+    public ScheduledWorkoutController(
+            ScheduledWorkoutService service,
+            UserRepository userRepository,
+            TrainingRepository trainingRepository
+    ) {
+        this.service = service;
         this.userRepository = userRepository;
+        this.trainingRepository = trainingRepository;
     }
 
-    // Tworzenie zaplanowanego treningu (user pobierany z tokena)
+    // Dodanie nowego zaplanowanego treningu klasycznego (np. przez edycję)
     @PostMapping
-    public ResponseEntity<ScheduledWorkout> schedule(@RequestBody ScheduledWorkout workout, Principal principal) {
-        String username = principal.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
+    public ScheduledWorkout schedule(
+            @RequestBody ScheduledWorkout workout,
+            Principal principal
+    ) {
+        User user = userRepository.findByUsername(principal.getName()).orElseThrow();
         workout.setUser(user);
-        ScheduledWorkout saved = scheduledWorkoutService.schedule(workout); // zakładam, że przyjmuje tylko workout, nie userId
-        return ResponseEntity.ok(saved);
+        if (workout.getScheduledExercises() != null) {
+            workout.getScheduledExercises().forEach(se -> se.setScheduledWorkout(workout));
+        }
+        return service.schedule(workout);
     }
 
-    // Pobierz zaplanowane treningi użytkownika w zakresie dat
+    // Przypisanie gotowego treningu do dnia
+    @PostMapping("/add-training")
+    public ResponseEntity<?> addTrainingToDay(
+            @RequestBody Map<String, Object> req,
+            Principal principal
+    ) {
+        User user = userRepository.findByUsername(principal.getName()).orElseThrow();
+        LocalDate date = LocalDate.parse(req.get("date").toString());
+        Long trainingId = Long.valueOf(req.get("trainingId").toString());
+
+        Training training = trainingRepository.findById(trainingId).orElseThrow();
+
+        // Zabezpieczenie: czy na ten dzień już jest zaplanowany trening?
+        if (service.existsByUserAndDate(user, date)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Trening na ten dzień już istnieje"));
+        }
+
+        ScheduledWorkout workout = new ScheduledWorkout();
+        workout.setUser(user);
+        workout.setDate(date);
+        workout.setTraining(training);
+
+        service.schedule(workout);
+
+        return ResponseEntity.ok(Map.of("message", "Dodano trening do kalendarza"));
+    }
+
+    // Pobranie treningów w zadanym przedziale
     @GetMapping
     public List<ScheduledWorkout> getSchedule(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end,
             Principal principal
     ) {
-        String username = principal.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
-        return scheduledWorkoutService.findByUserIdAndDateBetween(user.getId(), start, end);
+        User user = userRepository.findByUsername(principal.getName()).orElseThrow();
+        return service.findByUserAndDateBetween(user, start, end);
     }
 
-    // Pobierz pojedynczy zaplanowany trening po jego ID
-    @GetMapping("/{scheduleId}")
-    public ResponseEntity<ScheduledWorkout> getById(@PathVariable Long scheduleId, Principal principal) {
-        String username = principal.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
-        return scheduledWorkoutService.findByIdAndUser(scheduleId, user)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    // Usuń zaplanowany trening po jego ID
-    @DeleteMapping("/{scheduleId}")
-    public ResponseEntity<Void> delete(@PathVariable Long scheduleId, Principal principal) {
-        String username = principal.getName();
-        User user = userRepository.findByUsername(username).orElseThrow();
-        scheduledWorkoutService.deleteByIdAndUser(scheduleId, user);
-        return ResponseEntity.noContent().build();
+    // Usunięcie zaplanowanego treningu
+    @DeleteMapping("/{id}")
+    public void delete(
+            @PathVariable Long id,
+            Principal principal
+    ) {
+        User user = userRepository.findByUsername(principal.getName()).orElseThrow();
+        service.deleteByIdAndUser(id, user);
     }
 }
 

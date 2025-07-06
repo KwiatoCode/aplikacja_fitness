@@ -52,6 +52,10 @@ public class ScheduledWorkoutService {
     public List<ScheduledWorkout> findByUser(User user) {
         return scheduledWorkoutRepository.findByUser(user);
     }
+    public boolean existsByUserAndDate(User user, LocalDate date) {
+        return scheduledWorkoutRepository.existsByUserAndDate(user, date);
+    }
+
 }
 
 

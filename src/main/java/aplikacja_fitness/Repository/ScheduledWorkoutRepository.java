@@ -15,4 +15,7 @@ public interface ScheduledWorkoutRepository extends JpaRepository<ScheduledWorko
     Optional<ScheduledWorkout> findByIdAndUser(Long id, User user);
 
     List<ScheduledWorkout> findByUser(User user);
+
+    boolean existsByUserAndDate(User user, LocalDate date);
+
 }

@@ -1,5 +1,6 @@
 package aplikacja_fitness.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -16,8 +17,14 @@ public class ScheduledWorkout {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "training_id")
+    private Training training;
+
     private LocalDate date;
 
+    @JsonManagedReference                  // <<< tu
     @OneToMany(mappedBy = "scheduledWorkout", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScheduledExercise> scheduledExercises;
 }
+
