@@ -23,17 +23,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(org.springframework.security.config.annotation.web.builders.HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors // <--- WAŻNE: WŁĄCZ CORS
+                .cors(cors -> cors // WŁĄCZ CORS z konfiguracją
                         .configurationSource(request -> {
                             var configuration = new org.springframework.web.cors.CorsConfiguration();
-                            configuration.setAllowedOrigins("https://aplikacjafitnessfront-production.up.railway.app"));
+                            configuration.setAllowedOrigins(java.util.List.of("https://aplikacjafitnessfront-production.up.railway.app"));
                             configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                             configuration.setAllowedHeaders(java.util.List.of("*"));
-                            configuration.setAllowCredentials(true); // Jeśli potrzebujesz
+                            configuration.setAllowCredentials(true);
                             return configuration;
                         })
                 )
-                .csrf(csrf -> csrf.disable()) // CSRF wyłączony dla REST API
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -53,3 +53,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
