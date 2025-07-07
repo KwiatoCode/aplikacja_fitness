@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000") // <-- frontend React
+                        .allowedOrigins("https://aplikacjafitnessfront-production.up.railway.app") // <-- frontend React
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true); // <--- jeśli potrzebujesz cookies/auth
